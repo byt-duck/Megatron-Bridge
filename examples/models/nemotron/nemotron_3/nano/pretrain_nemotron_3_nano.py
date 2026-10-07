@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2025, NVIDIA CORPORATION.  All rights reserved.
+# Copyright (c) 2025-2026, NVIDIA CORPORATION.  All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@ from omegaconf import OmegaConf
 from megatron.bridge.recipes.nemotronh.nemotron_3_nano import (
     nemotron_3_nano_pretrain_config as pretrain_config,
 )
+from megatron.bridge.recipes.utils.dataset_utils import get_blend_fields_from_data_paths
 from megatron.bridge.training.config import ConfigContainer
 from megatron.bridge.training.gpt_step import forward_step
 from megatron.bridge.training.pretrain import pretrain
@@ -36,6 +37,23 @@ from megatron.bridge.training.utils.omegaconf_utils import (
 
 
 logger: logging.Logger = logging.getLogger(__name__)
+
+
+def build_config(per_split_data_args_path: str | None = None) -> ConfigContainer:
+    """Build the pretraining config and apply an optional per-split dataset file.
+
+    Args:
+        per_split_data_args_path: Path to JSON data arguments for the train, validation, and test splits.
+
+    Returns:
+        The configured Nemotron 3 Nano pretraining container.
+    """
+    cfg = pretrain_config()
+    if per_split_data_args_path is not None:
+        cfg.dataset.blend, cfg.dataset.blend_per_split, cfg.dataset.split = get_blend_fields_from_data_paths(
+            per_split_data_args_path=per_split_data_args_path,
+        )
+    return cfg
 
 
 def parse_cli_args() -> Tuple[argparse.Namespace, list[str]]:
@@ -62,9 +80,7 @@ def main() -> None:
     """
     args, cli_overrides = parse_cli_args()
 
-    cfg: ConfigContainer = pretrain_config(
-        per_split_data_args_path=args.per_split_data_args_path,
-    )
+    cfg = build_config(args.per_split_data_args_path)
 
     # Convert the initial Python dataclass to an OmegaConf DictConfig for merging
     merged_omega_conf, excluded_fields = create_omegaconf_dict_config(cfg)

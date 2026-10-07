@@ -1,0 +1,30 @@
+# Copyright (c) 2026, NVIDIA CORPORATION. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# This image adds the CUDA forward-compatibility driver libraries needed to
+# run the CUDA 13 NeMo userspace on supported data-center GPUs whose host uses
+# an older NVIDIA kernel driver. It does not replace or update the host driver.
+ARG NEMO_IMAGE=nvcr.io/nvidia/nemo@sha256:fdd6e9c7929b76c8624ddfea939dda345beaf67695d9c3994994c18f9e79b9bf
+FROM ${NEMO_IMAGE}
+
+ARG CUDA_COMPAT_VERSION=580.178.04-1ubuntu1
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        cuda-compat-13-0=${CUDA_COMPAT_VERSION} \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV CUDA_DRIVER_VERSION=580.178.04 \
+    _CUDA_COMPAT_PATH=/usr/local/cuda-13.0/compat
+ENV LD_LIBRARY_PATH="${_CUDA_COMPAT_PATH}:${LD_LIBRARY_PATH}"
